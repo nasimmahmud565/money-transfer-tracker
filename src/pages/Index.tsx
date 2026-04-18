@@ -803,6 +803,29 @@ export default function Index() {
           </div>
         </div>
       )}
+
+      <footer style={{
+        position: "relative", zIndex: 1,
+        marginTop: 32, padding: "24px 16px",
+        borderTop: `1px solid ${t.surfaceBorder}`,
+        textAlign: "center",
+        background: isLight ? "rgba(255,255,255,0.5)" : "rgba(10,15,30,0.4)",
+        backdropFilter: "blur(10px)",
+      }}>
+        <div style={{ fontSize: 12, color: t.muted, fontWeight: 600, letterSpacing: "0.05em" }}>
+          Crafted with <span style={{ color: "#f43f5e" }}>♥</span> by{" "}
+          <span style={{
+            fontWeight: 800,
+            background: `linear-gradient(135deg, ${t.accent}, ${t.accent2})`,
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}>Nasim Mahmud</span>
+        </div>
+        <div style={{ fontSize: 10, color: t.muted, marginTop: 6, opacity: 0.7 }}>
+          All data is saved securely on your device.
+        </div>
+      </footer>
     </div>
   );
 }
