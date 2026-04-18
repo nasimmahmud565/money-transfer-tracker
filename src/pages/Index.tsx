@@ -7,7 +7,8 @@ interface Transfer {
   recipientName: string;
   amountSent: number;
   currency: string;
-  amountReceivedBDT: number;
+  amountReceived: number;
+  receivedCurrency: string;
   paymentMethod: string;
   reference: string;
 }
