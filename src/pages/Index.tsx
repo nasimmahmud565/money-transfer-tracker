@@ -142,7 +142,7 @@ const EMPTY_FORM = (): Omit<Transfer, "id"> => ({
   recipientName: "",
   amountSent: 0,
   currency: "GBP",
-  amountReceivedBDT: 0,
+  amountReceived: 0,
   paymentMethod: "Bkash Transfer",
   reference: "",
 });
@@ -200,7 +200,7 @@ export default function Index() {
   }, [records, search, sortField, sortDir]);
 
   const stats = useMemo(() => {
-    const totalBDT = records.reduce((s, r) => s + r.amountReceivedBDT, 0);
+    const totalBDT = records.reduce((s, r) => s + r.amountReceived, 0);
     const byCurrency: Record<string, number> = {};
     records.forEach((r) => {
       byCurrency[r.currency] = (byCurrency[r.currency] || 0) + r.amountSent;
@@ -215,7 +215,7 @@ export default function Index() {
     const byYear: Record<string, number> = {};
     records.forEach((r) => {
       const yr = r.date.slice(0, 4);
-      byYear[yr] = (byYear[yr] || 0) + r.amountReceivedBDT;
+      byYear[yr] = (byYear[yr] || 0) + r.amountReceived;
     });
 
     const byMethod: Record<string, number> = {};
@@ -228,7 +228,7 @@ export default function Index() {
       byCurrency,
       count: records.length,
       thisMonthCount: thisMonth.length,
-      thisMonthBDT: thisMonth.reduce((s, r) => s + r.amountReceivedBDT, 0),
+      thisMonthBDT: thisMonth.reduce((s, r) => s + r.amountReceived, 0),
       byYear,
       byMethod,
     };
@@ -245,7 +245,7 @@ export default function Index() {
     setShowForm(true);
   }
   function openEdit(r: Transfer) {
-    setForm({ date: r.date, recipientName: r.recipientName, amountSent: r.amountSent, currency: r.currency, amountReceivedBDT: r.amountReceivedBDT, paymentMethod: r.paymentMethod, reference: r.reference });
+    setForm({ date: r.date, recipientName: r.recipientName, amountSent: r.amountSent, currency: r.currency, amountReceived: r.amountReceived, paymentMethod: r.paymentMethod, reference: r.reference });
     setEditId(r.id);
     setFormError("");
     setShowForm(true);
@@ -254,7 +254,7 @@ export default function Index() {
     if (!form.date) return setFormError("Date is required.");
     if (!form.recipientName.trim()) return setFormError("Recipient name is required.");
     if (!form.amountSent || form.amountSent <= 0) return setFormError("Amount sent must be greater than 0.");
-    if (!form.amountReceivedBDT || form.amountReceivedBDT <= 0) return setFormError("Amount received must be greater than 0.");
+    if (!form.amountReceived || form.amountReceived <= 0) return setFormError("Amount received must be greater than 0.");
     setFormError("");
     if (editId) {
       setRecords((prev) => prev.map((r) => (r.id === editId ? { ...form, id: editId } : r)));
@@ -609,7 +609,7 @@ export default function Index() {
                       ["date", "Date"],
                       ["recipientName", "Recipient"],
                       ["amountSent", "Sent"],
-                      ["amountReceivedBDT", "Received (BDT)"],
+                      ["amountReceived", "Received (BDT)"],
                       ["paymentMethod", "Method"],
                       ["reference", "Reference"],
                     ] as [keyof Transfer, string][]).map(([field, label]) => (
@@ -638,7 +638,7 @@ export default function Index() {
                           <td style={s.td}>{fmtDate(r.date)}</td>
                           <td style={{ ...s.td, fontWeight: 700 }}>{r.recipientName}</td>
                           <td style={{ ...s.td, color: t.accent, fontWeight: 700 }}>{fmtMoney(r.amountSent, r.currency)}</td>
-                          <td style={{ ...s.td, color: t.accent2, fontWeight: 700 }}>৳ {r.amountReceivedBDT.toLocaleString("en-BD", { maximumFractionDigits: 2 })}</td>
+                          <td style={{ ...s.td, color: t.accent2, fontWeight: 700 }}>৳ {r.amountReceived.toLocaleString("en-BD", { maximumFractionDigits: 2 })}</td>
                           <td style={s.td}>
                             <span style={{
                               background: m.bg, color: m.color,
@@ -708,7 +708,7 @@ export default function Index() {
               </div>
 
               <Field theme={t} label="Amount Received (BDT) *">
-                <input type="number" step="0.01" min="0" style={s.input} placeholder="0.00" value={form.amountReceivedBDT || ""} onChange={(e) => setForm({ ...form, amountReceivedBDT: parseFloat(e.target.value) || 0 })} />
+                <input type="number" step="0.01" min="0" style={s.input} placeholder="0.00" value={form.amountReceived || ""} onChange={(e) => setForm({ ...form, amountReceived: parseFloat(e.target.value) || 0 })} />
               </Field>
               <Field theme={t} label="Reference / Purpose">
                 <input type="text" style={s.input} placeholder="e.g. Monthly support" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
@@ -732,10 +732,10 @@ export default function Index() {
               </div>
             </div>
 
-            {form.amountSent > 0 && form.amountReceivedBDT > 0 && (
+            {form.amountSent > 0 && form.amountReceived > 0 && (
               <div style={s.ratePreview}>
                 Exchange rate: <strong style={{ color: t.accent }}>
-                  ৳ {(form.amountReceivedBDT / form.amountSent).toFixed(2)}
+                  ৳ {(form.amountReceived / form.amountSent).toFixed(2)}
                 </strong> per {currencyObj.code}
               </div>
             )}
