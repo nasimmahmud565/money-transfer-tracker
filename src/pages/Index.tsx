@@ -696,7 +696,7 @@ export default function Index() {
                 <input type="date" style={s.input} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
               </Field>
               <Field theme={t} label="Recipient Name *">
-                <input type="text" style={s.input} placeholder="e.g. Noyon Moni" value={form.recipientName} onChange={(e) => setForm({ ...form, recipientName: e.target.value })} />
+                <input type="text" style={s.input} placeholder="" value={form.recipientName} onChange={(e) => setForm({ ...form, recipientName: e.target.value })} />
               </Field>
 
               <div style={{ gridColumn: "1 / -1" }}>
@@ -708,12 +708,12 @@ export default function Index() {
                       onChange={(e) => setForm({ ...form, currency: e.target.value })}
                     >
                       {CURRENCIES.map((c) => (
-                        <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>
+                        <option key={c.code} value={c.code} style={{ background: "#0a0f1e", color: "#fff" }}>{c.symbol} {c.code} — {c.label}</option>
                       ))}
                     </select>
                     <input
                       type="number" step="0.01" min="0"
-                      style={s.input} placeholder="0.00"
+                      style={s.input} placeholder=""
                       value={form.amountSent || ""}
                       onChange={(e) => setForm({ ...form, amountSent: parseFloat(e.target.value) || 0 })}
                     />
@@ -721,11 +721,30 @@ export default function Index() {
                 </Field>
               </div>
 
-              <Field theme={t} label="Amount Received (BDT) *">
-                <input type="number" step="0.01" min="0" style={s.input} placeholder="0.00" value={form.amountReceived || ""} onChange={(e) => setForm({ ...form, amountReceived: parseFloat(e.target.value) || 0 })} />
-              </Field>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <Field theme={t} label={`Amount Received (${form.receivedCurrency}) *`}>
+                  <div style={s.amountRow}>
+                    <select
+                      style={s.currencySelect}
+                      value={form.receivedCurrency}
+                      onChange={(e) => setForm({ ...form, receivedCurrency: e.target.value })}
+                    >
+                      {CURRENCIES.map((c) => (
+                        <option key={c.code} value={c.code} style={{ background: "#0a0f1e", color: "#fff" }}>{c.symbol} {c.code} — {c.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number" step="0.01" min="0"
+                      style={s.input} placeholder=""
+                      value={form.amountReceived || ""}
+                      onChange={(e) => setForm({ ...form, amountReceived: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </Field>
+              </div>
+
               <Field theme={t} label="Reference / Purpose">
-                <input type="text" style={s.input} placeholder="e.g. Monthly support" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
+                <input type="text" style={s.input} placeholder="" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
               </Field>
 
               <div style={{ gridColumn: "1 / -1" }}>
