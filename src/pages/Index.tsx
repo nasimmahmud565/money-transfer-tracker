@@ -7,7 +7,8 @@ interface Transfer {
   recipientName: string;
   amountSent: number;
   currency: string;
-  amountReceivedBDT: number;
+  amountReceived: number;
+  receivedCurrency: string;
   paymentMethod: string;
   reference: string;
 }
@@ -19,17 +20,22 @@ const STORAGE_KEY = "money_transfer_records_v2";
 const THEME_KEY = "money_transfer_theme";
 
 const CURRENCIES = [
+  { code: "SAR", symbol: "﷼", label: "Saudi Riyal" },
   { code: "GBP", symbol: "£", label: "Pound" },
   { code: "USD", symbol: "$", label: "Dollar" },
   { code: "EUR", symbol: "€", label: "Euro" },
-  { code: "SAR", symbol: "﷼", label: "Saudi Riyal" },
   { code: "AED", symbol: "د.إ", label: "UAE Dirham" },
   { code: "QAR", symbol: "﷼", label: "Qatari Riyal" },
   { code: "KWD", symbol: "د.ك", label: "Kuwaiti Dinar" },
+  { code: "OMR", symbol: "﷼", label: "Omani Rial" },
+  { code: "BHD", symbol: ".د.ب", label: "Bahraini Dinar" },
   { code: "MYR", symbol: "RM", label: "Malaysian Ringgit" },
   { code: "SGD", symbol: "S$", label: "Singapore Dollar" },
   { code: "AUD", symbol: "A$", label: "Australian Dollar" },
   { code: "CAD", symbol: "C$", label: "Canadian Dollar" },
+  { code: "BDT", symbol: "৳", label: "Bangladeshi Taka" },
+  { code: "INR", symbol: "₹", label: "Indian Rupee" },
+  { code: "PKR", symbol: "₨", label: "Pakistani Rupee" },
 ];
 
 const PAYMENT_METHODS = [
@@ -140,8 +146,9 @@ const EMPTY_FORM = (): Omit<Transfer, "id"> => ({
   date: new Date().toISOString().split("T")[0],
   recipientName: "",
   amountSent: 0,
-  currency: "GBP",
-  amountReceivedBDT: 0,
+  currency: "SAR",
+  amountReceived: 0,
+  receivedCurrency: "BDT",
   paymentMethod: "Bkash Transfer",
   reference: "",
 });
@@ -199,7 +206,7 @@ export default function Index() {
   }, [records, search, sortField, sortDir]);
 
   const stats = useMemo(() => {
-    const totalBDT = records.reduce((s, r) => s + r.amountReceivedBDT, 0);
+    const totalBDT = records.reduce((s, r) => s + r.amountReceived, 0);
     const byCurrency: Record<string, number> = {};
     records.forEach((r) => {
       byCurrency[r.currency] = (byCurrency[r.currency] || 0) + r.amountSent;
@@ -214,7 +221,7 @@ export default function Index() {
     const byYear: Record<string, number> = {};
     records.forEach((r) => {
       const yr = r.date.slice(0, 4);
-      byYear[yr] = (byYear[yr] || 0) + r.amountReceivedBDT;
+      byYear[yr] = (byYear[yr] || 0) + r.amountReceived;
     });
 
     const byMethod: Record<string, number> = {};
@@ -227,7 +234,7 @@ export default function Index() {
       byCurrency,
       count: records.length,
       thisMonthCount: thisMonth.length,
-      thisMonthBDT: thisMonth.reduce((s, r) => s + r.amountReceivedBDT, 0),
+      thisMonthBDT: thisMonth.reduce((s, r) => s + r.amountReceived, 0),
       byYear,
       byMethod,
     };
@@ -244,7 +251,7 @@ export default function Index() {
     setShowForm(true);
   }
   function openEdit(r: Transfer) {
-    setForm({ date: r.date, recipientName: r.recipientName, amountSent: r.amountSent, currency: r.currency, amountReceivedBDT: r.amountReceivedBDT, paymentMethod: r.paymentMethod, reference: r.reference });
+    setForm({ date: r.date, recipientName: r.recipientName, amountSent: r.amountSent, currency: r.currency, amountReceived: r.amountReceived, receivedCurrency: r.receivedCurrency ?? "BDT", paymentMethod: r.paymentMethod, reference: r.reference });
     setEditId(r.id);
     setFormError("");
     setShowForm(true);
@@ -253,7 +260,7 @@ export default function Index() {
     if (!form.date) return setFormError("Date is required.");
     if (!form.recipientName.trim()) return setFormError("Recipient name is required.");
     if (!form.amountSent || form.amountSent <= 0) return setFormError("Amount sent must be greater than 0.");
-    if (!form.amountReceivedBDT || form.amountReceivedBDT <= 0) return setFormError("Amount received must be greater than 0.");
+    if (!form.amountReceived || form.amountReceived <= 0) return setFormError("Amount received must be greater than 0.");
     setFormError("");
     if (editId) {
       setRecords((prev) => prev.map((r) => (r.id === editId ? { ...form, id: editId } : r)));
@@ -417,9 +424,10 @@ export default function Index() {
     },
     amountRow: { display: "flex", gap: 8 },
     currencySelect: {
-      padding: "11px 10px", background: t.inputBg, border: `1px solid ${t.surfaceBorder}`,
-      borderRadius: 10, color: t.text, fontSize: 13, outline: "none",
-      fontFamily: "inherit", minWidth: 90, fontWeight: 700,
+      padding: "11px 10px", background: "#0a0f1e", border: `1px solid ${t.surfaceBorder}`,
+      borderRadius: 10, color: "#ffffff", fontSize: 13, outline: "none",
+      fontFamily: "inherit", minWidth: 90, fontWeight: 700, cursor: "pointer",
+      colorScheme: "dark",
     },
     methodPicker: { display: "flex", flexWrap: "wrap", gap: 8 },
     methodChip: (m: typeof PAYMENT_METHODS[number], active: boolean): React.CSSProperties => ({
@@ -472,9 +480,16 @@ export default function Index() {
       <header style={s.header}>
         <div style={s.headerInner}>
           <div style={s.logo}>
-            <span style={s.logoIcon}>💸</span>
+            <span style={{
+              width: 56, height: 56,
+              background: `linear-gradient(135deg, ${t.accent}, ${t.accent2})`,
+              borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 30, flexShrink: 0,
+              boxShadow: `0 10px 30px ${t.accent}77, inset 0 1px 0 rgba(255,255,255,0.3)`,
+              border: "2px solid rgba(255,255,255,0.15)",
+            }}>💰</span>
             <div>
-              <div style={s.logoTitle}>Money Transfer Tracker</div>
+              <div style={{ ...s.logoTitle, fontSize: 18 }}>Money Transfer Tracker</div>
               <div style={s.logoSub}>Send · Track · Save</div>
             </div>
           </div>
@@ -608,7 +623,7 @@ export default function Index() {
                       ["date", "Date"],
                       ["recipientName", "Recipient"],
                       ["amountSent", "Sent"],
-                      ["amountReceivedBDT", "Received (BDT)"],
+                      ["amountReceived", "Received"],
                       ["paymentMethod", "Method"],
                       ["reference", "Reference"],
                     ] as [keyof Transfer, string][]).map(([field, label]) => (
@@ -637,7 +652,7 @@ export default function Index() {
                           <td style={s.td}>{fmtDate(r.date)}</td>
                           <td style={{ ...s.td, fontWeight: 700 }}>{r.recipientName}</td>
                           <td style={{ ...s.td, color: t.accent, fontWeight: 700 }}>{fmtMoney(r.amountSent, r.currency)}</td>
-                          <td style={{ ...s.td, color: t.accent2, fontWeight: 700 }}>৳ {r.amountReceivedBDT.toLocaleString("en-BD", { maximumFractionDigits: 2 })}</td>
+                          <td style={{ ...s.td, color: t.accent2, fontWeight: 700 }}>{fmtMoney(r.amountReceived, r.receivedCurrency ?? "BDT")}</td>
                           <td style={s.td}>
                             <span style={{
                               background: m.bg, color: m.color,
@@ -681,7 +696,7 @@ export default function Index() {
                 <input type="date" style={s.input} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
               </Field>
               <Field theme={t} label="Recipient Name *">
-                <input type="text" style={s.input} placeholder="e.g. Noyon Moni" value={form.recipientName} onChange={(e) => setForm({ ...form, recipientName: e.target.value })} />
+                <input type="text" style={s.input} placeholder="" value={form.recipientName} onChange={(e) => setForm({ ...form, recipientName: e.target.value })} />
               </Field>
 
               <div style={{ gridColumn: "1 / -1" }}>
@@ -693,12 +708,12 @@ export default function Index() {
                       onChange={(e) => setForm({ ...form, currency: e.target.value })}
                     >
                       {CURRENCIES.map((c) => (
-                        <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>
+                        <option key={c.code} value={c.code} style={{ background: "#0a0f1e", color: "#fff" }}>{c.symbol} {c.code} — {c.label}</option>
                       ))}
                     </select>
                     <input
                       type="number" step="0.01" min="0"
-                      style={s.input} placeholder="0.00"
+                      style={s.input} placeholder=""
                       value={form.amountSent || ""}
                       onChange={(e) => setForm({ ...form, amountSent: parseFloat(e.target.value) || 0 })}
                     />
@@ -706,11 +721,30 @@ export default function Index() {
                 </Field>
               </div>
 
-              <Field theme={t} label="Amount Received (BDT) *">
-                <input type="number" step="0.01" min="0" style={s.input} placeholder="0.00" value={form.amountReceivedBDT || ""} onChange={(e) => setForm({ ...form, amountReceivedBDT: parseFloat(e.target.value) || 0 })} />
-              </Field>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <Field theme={t} label={`Amount Received (${form.receivedCurrency}) *`}>
+                  <div style={s.amountRow}>
+                    <select
+                      style={s.currencySelect}
+                      value={form.receivedCurrency}
+                      onChange={(e) => setForm({ ...form, receivedCurrency: e.target.value })}
+                    >
+                      {CURRENCIES.map((c) => (
+                        <option key={c.code} value={c.code} style={{ background: "#0a0f1e", color: "#fff" }}>{c.symbol} {c.code} — {c.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number" step="0.01" min="0"
+                      style={s.input} placeholder=""
+                      value={form.amountReceived || ""}
+                      onChange={(e) => setForm({ ...form, amountReceived: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </Field>
+              </div>
+
               <Field theme={t} label="Reference / Purpose">
-                <input type="text" style={s.input} placeholder="e.g. Monthly support" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
+                <input type="text" style={s.input} placeholder="" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
               </Field>
 
               <div style={{ gridColumn: "1 / -1" }}>
@@ -731,10 +765,10 @@ export default function Index() {
               </div>
             </div>
 
-            {form.amountSent > 0 && form.amountReceivedBDT > 0 && (
+            {form.amountSent > 0 && form.amountReceived > 0 && (
               <div style={s.ratePreview}>
                 Exchange rate: <strong style={{ color: t.accent }}>
-                  ৳ {(form.amountReceivedBDT / form.amountSent).toFixed(2)}
+                  {(form.amountReceived / form.amountSent).toFixed(2)} {form.receivedCurrency}
                 </strong> per {currencyObj.code}
               </div>
             )}
@@ -769,6 +803,29 @@ export default function Index() {
           </div>
         </div>
       )}
+
+      <footer style={{
+        position: "relative", zIndex: 1,
+        marginTop: 32, padding: "24px 16px",
+        borderTop: `1px solid ${t.surfaceBorder}`,
+        textAlign: "center",
+        background: isLight ? "rgba(255,255,255,0.5)" : "rgba(10,15,30,0.4)",
+        backdropFilter: "blur(10px)",
+      }}>
+        <div style={{ fontSize: 12, color: t.muted, fontWeight: 600, letterSpacing: "0.05em" }}>
+          Crafted with <span style={{ color: "#f43f5e" }}>♥</span> by{" "}
+          <span style={{
+            fontWeight: 800,
+            background: `linear-gradient(135deg, ${t.accent}, ${t.accent2})`,
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}>Nasim Mahmud</span>
+        </div>
+        <div style={{ fontSize: 10, color: t.muted, marginTop: 6, opacity: 0.7 }}>
+          All data is saved securely on your device.
+        </div>
+      </footer>
     </div>
   );
 }
