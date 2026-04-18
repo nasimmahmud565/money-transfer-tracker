@@ -251,7 +251,7 @@ export default function Index() {
     setShowForm(true);
   }
   function openEdit(r: Transfer) {
-    setForm({ date: r.date, recipientName: r.recipientName, amountSent: r.amountSent, currency: r.currency, amountReceived: r.amountReceived, paymentMethod: r.paymentMethod, reference: r.reference });
+    setForm({ date: r.date, recipientName: r.recipientName, amountSent: r.amountSent, currency: r.currency, amountReceived: r.amountReceived, receivedCurrency: r.receivedCurrency ?? "BDT", paymentMethod: r.paymentMethod, reference: r.reference });
     setEditId(r.id);
     setFormError("");
     setShowForm(true);
