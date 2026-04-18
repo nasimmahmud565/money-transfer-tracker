@@ -141,8 +141,9 @@ const EMPTY_FORM = (): Omit<Transfer, "id"> => ({
   date: new Date().toISOString().split("T")[0],
   recipientName: "",
   amountSent: 0,
-  currency: "GBP",
+  currency: "SAR",
   amountReceived: 0,
+  receivedCurrency: "BDT",
   paymentMethod: "Bkash Transfer",
   reference: "",
 });
