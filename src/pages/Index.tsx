@@ -424,9 +424,10 @@ export default function Index() {
     },
     amountRow: { display: "flex", gap: 8 },
     currencySelect: {
-      padding: "11px 10px", background: t.inputBg, border: `1px solid ${t.surfaceBorder}`,
-      borderRadius: 10, color: t.text, fontSize: 13, outline: "none",
-      fontFamily: "inherit", minWidth: 90, fontWeight: 700,
+      padding: "11px 10px", background: "#0a0f1e", border: `1px solid ${t.surfaceBorder}`,
+      borderRadius: 10, color: "#ffffff", fontSize: 13, outline: "none",
+      fontFamily: "inherit", minWidth: 90, fontWeight: 700, cursor: "pointer",
+      colorScheme: "dark",
     },
     methodPicker: { display: "flex", flexWrap: "wrap", gap: 8 },
     methodChip: (m: typeof PAYMENT_METHODS[number], active: boolean): React.CSSProperties => ({
