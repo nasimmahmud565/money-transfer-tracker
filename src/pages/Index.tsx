@@ -652,7 +652,7 @@ export default function Index() {
                           <td style={s.td}>{fmtDate(r.date)}</td>
                           <td style={{ ...s.td, fontWeight: 700 }}>{r.recipientName}</td>
                           <td style={{ ...s.td, color: t.accent, fontWeight: 700 }}>{fmtMoney(r.amountSent, r.currency)}</td>
-                          <td style={{ ...s.td, color: t.accent2, fontWeight: 700 }}>৳ {r.amountReceived.toLocaleString("en-BD", { maximumFractionDigits: 2 })}</td>
+                          <td style={{ ...s.td, color: t.accent2, fontWeight: 700 }}>{fmtMoney(r.amountReceived, r.receivedCurrency ?? "BDT")}</td>
                           <td style={s.td}>
                             <span style={{
                               background: m.bg, color: m.color,
