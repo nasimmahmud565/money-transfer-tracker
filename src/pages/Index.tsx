@@ -768,7 +768,7 @@ export default function Index() {
             {form.amountSent > 0 && form.amountReceived > 0 && (
               <div style={s.ratePreview}>
                 Exchange rate: <strong style={{ color: t.accent }}>
-                  ৳ {(form.amountReceived / form.amountSent).toFixed(2)}
+                  {(form.amountReceived / form.amountSent).toFixed(2)} {form.receivedCurrency}
                 </strong> per {currencyObj.code}
               </div>
             )}
