@@ -20,17 +20,22 @@ const STORAGE_KEY = "money_transfer_records_v2";
 const THEME_KEY = "money_transfer_theme";
 
 const CURRENCIES = [
+  { code: "SAR", symbol: "﷼", label: "Saudi Riyal" },
   { code: "GBP", symbol: "£", label: "Pound" },
   { code: "USD", symbol: "$", label: "Dollar" },
   { code: "EUR", symbol: "€", label: "Euro" },
-  { code: "SAR", symbol: "﷼", label: "Saudi Riyal" },
   { code: "AED", symbol: "د.إ", label: "UAE Dirham" },
   { code: "QAR", symbol: "﷼", label: "Qatari Riyal" },
   { code: "KWD", symbol: "د.ك", label: "Kuwaiti Dinar" },
+  { code: "OMR", symbol: "﷼", label: "Omani Rial" },
+  { code: "BHD", symbol: ".د.ب", label: "Bahraini Dinar" },
   { code: "MYR", symbol: "RM", label: "Malaysian Ringgit" },
   { code: "SGD", symbol: "S$", label: "Singapore Dollar" },
   { code: "AUD", symbol: "A$", label: "Australian Dollar" },
   { code: "CAD", symbol: "C$", label: "Canadian Dollar" },
+  { code: "BDT", symbol: "৳", label: "Bangladeshi Taka" },
+  { code: "INR", symbol: "₹", label: "Indian Rupee" },
+  { code: "PKR", symbol: "₨", label: "Pakistani Rupee" },
 ];
 
 const PAYMENT_METHODS = [
