@@ -623,7 +623,7 @@ export default function Index() {
                       ["date", "Date"],
                       ["recipientName", "Recipient"],
                       ["amountSent", "Sent"],
-                      ["amountReceived", "Received (BDT)"],
+                      ["amountReceived", "Received"],
                       ["paymentMethod", "Method"],
                       ["reference", "Reference"],
                     ] as [keyof Transfer, string][]).map(([field, label]) => (
