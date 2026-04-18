@@ -804,24 +804,36 @@ export default function Index() {
 
       <footer style={{
         position: "relative", zIndex: 1,
-        marginTop: 32, padding: "24px 16px",
+        marginTop: 40, padding: "32px 16px 28px",
         borderTop: `1px solid ${t.surfaceBorder}`,
         textAlign: "center",
-        background: isLight ? "rgba(255,255,255,0.5)" : "rgba(10,15,30,0.4)",
+        background: isLight ? "rgba(255,255,255,0.6)" : "rgba(10,15,30,0.55)",
         backdropFilter: "blur(10px)",
       }}>
-        <div style={{ fontSize: 12, color: t.muted, fontWeight: 600, letterSpacing: "0.05em" }}>
-          Crafted with <span style={{ color: "#f43f5e" }}>♥</span> by{" "}
-          <span style={{
-            fontWeight: 800,
-            background: `linear-gradient(135deg, ${t.accent}, ${t.accent2})`,
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}>Nasim Mahmud</span>
+        <div style={{
+          fontSize: 11, color: t.muted, fontWeight: 700,
+          letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 10,
+        }}>
+          Developed by
         </div>
-        <div style={{ fontSize: 10, color: t.muted, marginTop: 6, opacity: 0.7 }}>
-          All data is saved securely on your device.
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 10,
+          padding: "10px 22px",
+          background: `linear-gradient(135deg, ${t.accent}, ${t.accent2})`,
+          borderRadius: 999,
+          boxShadow: `0 10px 28px ${t.accent}55`,
+        }}>
+          <span style={{ fontSize: 16 }}>👨‍💻</span>
+          <span style={{
+            fontSize: 18, fontWeight: 900,
+            color: isLight ? "#fff" : "#0a0f1e",
+            letterSpacing: "0.02em",
+          }}>
+            Nasim Mahmud
+          </span>
+        </div>
+        <div style={{ fontSize: 11, color: t.muted, marginTop: 12, opacity: 0.75 }}>
+          © {new Date().getFullYear()} · All data is saved securely on your device.
         </div>
       </footer>
     </div>
