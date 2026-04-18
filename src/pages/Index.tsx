@@ -271,7 +271,7 @@ export default function Index() {
   const isLight = theme === "paper";
 
   // ─── Styles bound to theme ────────────────────────────────────────────────
-  const s: Record<string, React.CSSProperties> = {
+  const s: Record<string, any> = {
     root: {
       minHeight: "100vh",
       background: t.bg,
