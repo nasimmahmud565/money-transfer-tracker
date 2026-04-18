@@ -480,9 +480,16 @@ export default function Index() {
       <header style={s.header}>
         <div style={s.headerInner}>
           <div style={s.logo}>
-            <span style={s.logoIcon}>💸</span>
+            <span style={{
+              width: 56, height: 56,
+              background: `linear-gradient(135deg, ${t.accent}, ${t.accent2})`,
+              borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 30, flexShrink: 0,
+              boxShadow: `0 10px 30px ${t.accent}77, inset 0 1px 0 rgba(255,255,255,0.3)`,
+              border: "2px solid rgba(255,255,255,0.15)",
+            }}>💰</span>
             <div>
-              <div style={s.logoTitle}>Money Transfer Tracker</div>
+              <div style={{ ...s.logoTitle, fontSize: 18 }}>Money Transfer Tracker</div>
               <div style={s.logoSub}>Send · Track · Save</div>
             </div>
           </div>
