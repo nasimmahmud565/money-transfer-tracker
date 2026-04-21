@@ -150,6 +150,7 @@ export default function Index() {
 
   const [search, setSearch] = useState("");
   const [noteSearch, setNoteSearch] = useState("");
+  const [recipientSearch, setRecipientSearch] = useState("");
   const [sortField, setSortField] = useState<keyof Transfer>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
