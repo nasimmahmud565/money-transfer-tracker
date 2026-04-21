@@ -22,7 +22,7 @@ interface Note {
 }
 
 type ThemeName = "midnight" | "aurora" | "sunset" | "paper";
-type TabName = "dashboard" | "records" | "notes";
+type TabName = "dashboard" | "records" | "recipients" | "notes";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "money_transfer_records_v2";
@@ -150,6 +150,7 @@ export default function Index() {
 
   const [search, setSearch] = useState("");
   const [noteSearch, setNoteSearch] = useState("");
+  const [recipientSearch, setRecipientSearch] = useState("");
   const [sortField, setSortField] = useState<keyof Transfer>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -213,6 +214,38 @@ export default function Index() {
       .filter((n) => !q || n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q) || n.date.includes(q))
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [notes, noteSearch]);
+
+  // Recipient-wise totals: total received per name (grouped by received currency)
+  const recipientTotals = useMemo(() => {
+    const map = new Map<string, {
+      name: string;
+      count: number;
+      lastDate: string;
+      sentByCurrency: Record<string, number>;
+      receivedByCurrency: Record<string, number>;
+    }>();
+    records.forEach((r) => {
+      const key = r.recipientName.trim() || "(Unnamed)";
+      const entry = map.get(key) ?? {
+        name: key, count: 0, lastDate: "",
+        sentByCurrency: {}, receivedByCurrency: {},
+      };
+      entry.count += 1;
+      if (r.date > entry.lastDate) entry.lastDate = r.date;
+      entry.sentByCurrency[r.currency] = (entry.sentByCurrency[r.currency] || 0) + r.amountSent;
+      const rc = r.receivedCurrency ?? "BDT";
+      entry.receivedByCurrency[rc] = (entry.receivedByCurrency[rc] || 0) + r.amountReceived;
+      map.set(key, entry);
+    });
+    const q = recipientSearch.toLowerCase().trim();
+    return Array.from(map.values())
+      .filter((e) => !q || e.name.toLowerCase().includes(q))
+      .sort((a, b) => {
+        const aTot = Object.values(a.receivedByCurrency).reduce((s, v) => s + v, 0);
+        const bTot = Object.values(b.receivedByCurrency).reduce((s, v) => s + v, 0);
+        return bTot - aTot;
+      });
+  }, [records, recipientSearch]);
 
   const stats = useMemo(() => {
     const totalBDT = records.reduce((s, r) => s + r.amountReceived, 0);
@@ -481,6 +514,7 @@ export default function Index() {
         {([
           ["dashboard", "📊 Dashboard"],
           ["records", "📋 Records"],
+          ["recipients", "👥 Recipients"],
           ["notes", "📝 Notes"],
         ] as const).map(([tab, label]) => (
           <button
@@ -661,6 +695,79 @@ export default function Index() {
           </>
         )}
 
+        {activeTab === "recipients" && (
+          <>
+            <div style={s.toolbar}>
+              <div style={s.searchWrap}>
+                <span style={s.searchIcon}>🔍</span>
+                <input
+                  style={s.searchInput}
+                  placeholder="Search recipient name…"
+                  value={recipientSearch}
+                  onChange={(e) => setRecipientSearch(e.target.value)}
+                />
+                {recipientSearch && <button style={s.clearBtn} onClick={() => setRecipientSearch("")}>✕</button>}
+              </div>
+            </div>
+
+            {recipientTotals.length === 0 ? (
+              <div style={s.empty}>
+                <div style={{ fontSize: 48 }}>👥</div>
+                <p style={{ color: t.subtext, marginTop: 10 }}>
+                  {recipientSearch ? "No matching recipients." : "No recipients yet. Add a record first."}
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
+                {recipientTotals.map((rec) => (
+                  <div key={rec.name} style={{
+                    background: t.surface, border: `1px solid ${t.surfaceBorder}`,
+                    borderRadius: 16, padding: 16, backdropFilter: "blur(10px)",
+                    borderTop: `3px solid ${t.accent2}`,
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: t.text, letterSpacing: "-0.01em" }}>{rec.name}</div>
+                        <div style={{ fontSize: 11, color: t.muted, marginTop: 2 }}>
+                          {rec.count} transfer{rec.count !== 1 ? "s" : ""} · last {fmtDate(rec.lastDate)}
+                        </div>
+                      </div>
+                      <span style={{
+                        background: t.accentSoft, color: t.accent, fontWeight: 800,
+                        fontSize: 11, padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap",
+                      }}>{rec.count}</span>
+                    </div>
+
+                    <div style={{ fontSize: 10, fontWeight: 700, color: t.subtext, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+                      Total Received
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
+                      {Object.entries(rec.receivedByCurrency).map(([cur, amt]) => (
+                        <div key={cur} style={{ fontSize: 18, fontWeight: 800, color: t.accent2, letterSpacing: "-0.01em" }}>
+                          {fmtMoney(amt, cur)}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ fontSize: 10, fontWeight: 700, color: t.subtext, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+                      Total Sent
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {Object.entries(rec.sentByCurrency).map(([cur, amt]) => (
+                        <span key={cur} style={{
+                          background: t.inputBg, border: `1px solid ${t.surfaceBorder}`,
+                          borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 700, color: t.text,
+                        }}>
+                          {fmtMoney(amt, cur)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
         {activeTab === "notes" && (
           <>
             <div style={s.toolbar}>
