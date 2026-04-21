@@ -514,6 +514,7 @@ export default function Index() {
         {([
           ["dashboard", "📊 Dashboard"],
           ["records", "📋 Records"],
+          ["recipients", "👥 Recipients"],
           ["notes", "📝 Notes"],
         ] as const).map(([tab, label]) => (
           <button
