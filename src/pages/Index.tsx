@@ -215,6 +215,38 @@ export default function Index() {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [notes, noteSearch]);
 
+  // Recipient-wise totals: total received per name (grouped by received currency)
+  const recipientTotals = useMemo(() => {
+    const map = new Map<string, {
+      name: string;
+      count: number;
+      lastDate: string;
+      sentByCurrency: Record<string, number>;
+      receivedByCurrency: Record<string, number>;
+    }>();
+    records.forEach((r) => {
+      const key = r.recipientName.trim() || "(Unnamed)";
+      const entry = map.get(key) ?? {
+        name: key, count: 0, lastDate: "",
+        sentByCurrency: {}, receivedByCurrency: {},
+      };
+      entry.count += 1;
+      if (r.date > entry.lastDate) entry.lastDate = r.date;
+      entry.sentByCurrency[r.currency] = (entry.sentByCurrency[r.currency] || 0) + r.amountSent;
+      const rc = r.receivedCurrency ?? "BDT";
+      entry.receivedByCurrency[rc] = (entry.receivedByCurrency[rc] || 0) + r.amountReceived;
+      map.set(key, entry);
+    });
+    const q = recipientSearch.toLowerCase().trim();
+    return Array.from(map.values())
+      .filter((e) => !q || e.name.toLowerCase().includes(q))
+      .sort((a, b) => {
+        const aTot = Object.values(a.receivedByCurrency).reduce((s, v) => s + v, 0);
+        const bTot = Object.values(b.receivedByCurrency).reduce((s, v) => s + v, 0);
+        return bTot - aTot;
+      });
+  }, [records, recipientSearch]);
+
   const stats = useMemo(() => {
     const totalBDT = records.reduce((s, r) => s + r.amountReceived, 0);
     const byCurrency: Record<string, number> = {};
