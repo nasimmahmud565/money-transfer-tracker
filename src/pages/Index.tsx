@@ -22,7 +22,7 @@ interface Note {
 }
 
 type ThemeName = "midnight" | "aurora" | "sunset" | "paper";
-type TabName = "dashboard" | "records" | "notes";
+type TabName = "dashboard" | "records" | "recipients" | "notes";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "money_transfer_records_v2";
