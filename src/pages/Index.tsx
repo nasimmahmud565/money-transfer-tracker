@@ -768,7 +768,7 @@ export default function Index() {
             )}
           </>
         )}
-
+        {activeTab === "notes" && (
           <>
             <div style={s.toolbar}>
               <div style={s.searchWrap}>
