@@ -14,7 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      notes: {
+        Row: {
+          body: string
+          date: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          date?: string
+          id: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          date?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transfers: {
+        Row: {
+          amount_received: number
+          amount_sent: number
+          date: string
+          id: string
+          payment_method: string
+          received_currency: string
+          recipient_name: string
+          reference: string
+          sent_currency: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_received?: number
+          amount_sent?: number
+          date?: string
+          id: string
+          payment_method?: string
+          received_currency?: string
+          recipient_name?: string
+          reference?: string
+          sent_currency?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_received?: number
+          amount_sent?: number
+          date?: string
+          id?: string
+          payment_method?: string
+          received_currency?: string
+          recipient_name?: string
+          reference?: string
+          sent_currency?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
