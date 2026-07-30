@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import * as XLSX from "xlsx";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
+import { fetchCloud, pushCloud } from "@/lib/cloudSync";
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Transfer {
@@ -162,7 +166,52 @@ export default function Index() {
   const recordsImportRef = useRef<HTMLInputElement>(null);
   const notesImportRef = useRef<HTMLInputElement>(null);
 
-  // ─── Persistence (device storage) ───────────────────────────────────────
+  // ─── Auth (Google) ──────────────────────────────────────────────────────
+  const [user, setUser] = useState<{ id: string; email?: string; name?: string; avatar?: string } | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [signingIn, setSigningIn] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [syncState, setSyncState] = useState<"idle" | "syncing" | "synced" | "error">("idle");
+  const loadedRef = useRef(false);
+  const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      const u = session?.user;
+      setUser(u ? { id: u.id, email: u.email ?? undefined, name: (u.user_metadata as any)?.full_name, avatar: (u.user_metadata as any)?.avatar_url } : null);
+      setAuthLoading(false);
+      if (!u) loadedRef.current = false;
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      const u = data.session?.user;
+      setUser(u ? { id: u.id, email: u.email ?? undefined, name: (u.user_metadata as any)?.full_name, avatar: (u.user_metadata as any)?.avatar_url } : null);
+      setAuthLoading(false);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  async function signIn() {
+    setSigningIn(true);
+    setAuthError("");
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    if (result.error) {
+      setAuthError(result.error.message || "Sign-in failed. Please try again.");
+      setSigningIn(false);
+      return;
+    }
+    if (result.redirected) return;
+    setSigningIn(false);
+  }
+
+  async function signOut() {
+    loadedRef.current = false;
+    await supabase.auth.signOut();
+    setRecords([]);
+    setNotes([]);
+    setSyncState("idle");
+  }
+
+  // ─── Persistence: device storage (offline cache) ────────────────────────
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -177,6 +226,49 @@ export default function Index() {
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }, [records]);
   useEffect(() => { localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); }, [notes]);
   useEffect(() => { localStorage.setItem(THEME_KEY, theme); }, [theme]);
+
+  // ─── Cloud: pull on sign-in (merging any offline-only local data) ───────
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    setSyncState("syncing");
+    (async () => {
+      const { transfers, notes: cloudNotes, error } = await fetchCloud(user.id);
+      if (cancelled) return;
+      if (error) { setSyncState("error"); return; }
+      setRecords((local) => {
+        const map = new Map<string, Transfer>(transfers.map((r) => [r.id, r as Transfer]));
+        local.forEach((r) => { if (!map.has(r.id)) map.set(r.id, r); });
+        return Array.from(map.values());
+      });
+      setNotes((local) => {
+        const map = new Map<string, Note>(cloudNotes.map((n) => [n.id, n as Note]));
+        local.forEach((n) => { if (!map.has(n.id)) map.set(n.id, n); });
+        return Array.from(map.values());
+      });
+
+      loadedRef.current = true;
+      setSyncState("synced");
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // ─── Cloud: push on every change ────────────────────────────────────────
+  useEffect(() => {
+    if (!user || !loadedRef.current) return;
+    setSyncState("syncing");
+    if (pushTimer.current) clearTimeout(pushTimer.current);
+    pushTimer.current = setTimeout(async () => {
+      try {
+        await pushCloud(user.id, records, notes);
+        setSyncState("synced");
+      } catch {
+        setSyncState("error");
+      }
+    }, 600);
+    return () => { if (pushTimer.current) clearTimeout(pushTimer.current); };
+  }, [records, notes, user]);
+
 
   // ─── Toast helper ───────────────────────────────────────────────────────
   function showToast(msg: string) {
@@ -475,7 +567,50 @@ export default function Index() {
 
   const currencyObj = CURRENCIES.find((c) => c.code === form.currency) ?? CURRENCIES[0];
 
+  // ─── Auth gate ──────────────────────────────────────────────────────────
+  if (authLoading || !user) {
+    return (
+      <div style={{ ...s.root, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+        <div style={s.glow1} />
+        <div style={s.glow2} />
+        <div style={{ ...s.card, position: "relative", zIndex: 5, maxWidth: 420, width: "100%", textAlign: "center", padding: 28, marginBottom: 0 }}>
+          <div style={{ fontSize: 56, filter: `drop-shadow(0 6px 16px ${t.accent}88)` }}>💸</div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: t.text, margin: "10px 0 4px", letterSpacing: "-0.02em" }}>Money Transfer Tracker</h1>
+          <p style={{ color: t.muted, fontSize: 13, margin: "0 0 22px" }}>
+            {authLoading ? "Checking your session…" : "Sign in with Google to sync your records and notes across all your devices."}
+          </p>
+          {!authLoading && (
+            <>
+              <button
+                onClick={signIn}
+                disabled={signingIn}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%",
+                  padding: "13px 18px", borderRadius: 12, border: `1px solid ${t.surfaceBorder}`,
+                  background: "#ffffff", color: "#1f2937", fontWeight: 700, fontSize: 15,
+                  cursor: signingIn ? "wait" : "pointer", opacity: signingIn ? 0.7 : 1,
+                  boxShadow: `0 10px 24px ${t.accent}33`,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                  <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.4 5.4 2.5 13.2l7.8 6.1C12.2 13.3 17.6 9.5 24 9.5z" />
+                  <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.2-.4-4.7H24v9h12.7c-.6 3-2.3 5.6-4.9 7.3l7.6 5.9c4.4-4.1 7.1-10.2 7.1-17.5z" />
+                  <path fill="#FBBC05" d="M10.3 28.7a14.6 14.6 0 0 1 0-9.4l-7.8-6.1a24 24 0 0 0 0 21.6l7.8-6.1z" />
+                  <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.8 2.3-8.3 2.3-6.4 0-11.8-3.8-13.7-9.8l-7.8 6.1C6.4 42.6 14.6 48 24 48z" />
+                </svg>
+                {signingIn ? "Opening Google…" : "Continue with Google"}
+              </button>
+              {authError && <div style={{ ...s.formError, marginTop: 14, marginBottom: 0 }}>{authError}</div>}
+            </>
+          )}
+          <div style={{ marginTop: 22, fontSize: 11, color: t.muted }}>Your data stays private to your account.</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
+
     <div style={s.root}>
       <div style={s.glow1} />
       <div style={s.glow2} />
@@ -503,9 +638,35 @@ export default function Index() {
                 />
               ))}
             </div>
+            <div
+              title={syncState === "error" ? "Cloud sync failed" : syncState === "syncing" ? "Syncing to cloud…" : "All changes synced"}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 999,
+                background: t.surface, border: `1px solid ${t.surfaceBorder}`, fontSize: 11, fontWeight: 700,
+                color: syncState === "error" ? "#f87171" : syncState === "syncing" ? t.accent : t.muted,
+              }}
+            >
+              <span style={{
+                width: 8, height: 8, borderRadius: "50%",
+                background: syncState === "error" ? "#f87171" : syncState === "syncing" ? t.accent : "#4ade80",
+              }} />
+              {syncState === "error" ? "Sync error" : syncState === "syncing" ? "Syncing" : "Synced"}
+            </div>
             <button style={s.addBtn} onClick={activeTab === "notes" ? openAddNote : openAdd}>
               <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> New
             </button>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              {user.avatar ? (
+                <img src={user.avatar} alt="" style={{ width: 28, height: 28, borderRadius: "50%", border: `1px solid ${t.surfaceBorder}` }} />
+              ) : (
+                <span style={{
+                  width: 28, height: 28, borderRadius: "50%", background: t.accentSoft, color: t.accent,
+                  display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12,
+                }}>{(user.name ?? user.email ?? "?").charAt(0).toUpperCase()}</span>
+              )}
+              <button style={s.iconBtn} onClick={signOut} title={user.email}>Sign out</button>
+            </div>
+
           </div>
         </div>
       </header>
