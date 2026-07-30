@@ -71,7 +71,7 @@ export async function pushCloud(userId: string, transfers: CloudTransfer[], note
     updated_at: new Date().toISOString(),
   }));
 
-  const ops: Promise<unknown>[] = [];
+  const ops: PromiseLike<unknown>[] = [];
   if (transferRows.length) ops.push(supabase.from("transfers").upsert(transferRows, { onConflict: "user_id,id" }));
   if (noteRows.length) ops.push(supabase.from("notes").upsert(noteRows, { onConflict: "user_id,id" }));
 
