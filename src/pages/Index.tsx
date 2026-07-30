@@ -162,7 +162,52 @@ export default function Index() {
   const recordsImportRef = useRef<HTMLInputElement>(null);
   const notesImportRef = useRef<HTMLInputElement>(null);
 
-  // ─── Persistence (device storage) ───────────────────────────────────────
+  // ─── Auth (Google) ──────────────────────────────────────────────────────
+  const [user, setUser] = useState<{ id: string; email?: string; name?: string; avatar?: string } | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [signingIn, setSigningIn] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [syncState, setSyncState] = useState<"idle" | "syncing" | "synced" | "error">("idle");
+  const loadedRef = useRef(false);
+  const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      const u = session?.user;
+      setUser(u ? { id: u.id, email: u.email ?? undefined, name: (u.user_metadata as any)?.full_name, avatar: (u.user_metadata as any)?.avatar_url } : null);
+      setAuthLoading(false);
+      if (!u) loadedRef.current = false;
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      const u = data.session?.user;
+      setUser(u ? { id: u.id, email: u.email ?? undefined, name: (u.user_metadata as any)?.full_name, avatar: (u.user_metadata as any)?.avatar_url } : null);
+      setAuthLoading(false);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  async function signIn() {
+    setSigningIn(true);
+    setAuthError("");
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    if (result.error) {
+      setAuthError(result.error.message || "Sign-in failed. Please try again.");
+      setSigningIn(false);
+      return;
+    }
+    if (result.redirected) return;
+    setSigningIn(false);
+  }
+
+  async function signOut() {
+    loadedRef.current = false;
+    await supabase.auth.signOut();
+    setRecords([]);
+    setNotes([]);
+    setSyncState("idle");
+  }
+
+  // ─── Persistence: device storage (offline cache) ────────────────────────
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -177,6 +222,48 @@ export default function Index() {
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }, [records]);
   useEffect(() => { localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); }, [notes]);
   useEffect(() => { localStorage.setItem(THEME_KEY, theme); }, [theme]);
+
+  // ─── Cloud: pull on sign-in (merging any offline-only local data) ───────
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    setSyncState("syncing");
+    (async () => {
+      const { transfers, notes: cloudNotes, error } = await fetchCloud(user.id);
+      if (cancelled) return;
+      if (error) { setSyncState("error"); return; }
+      setRecords((local) => {
+        const map = new Map(transfers.map((r) => [r.id, r]));
+        local.forEach((r) => { if (!map.has(r.id)) map.set(r.id, r); });
+        return Array.from(map.values());
+      });
+      setNotes((local) => {
+        const map = new Map(cloudNotes.map((n) => [n.id, n]));
+        local.forEach((n) => { if (!map.has(n.id)) map.set(n.id, n); });
+        return Array.from(map.values());
+      });
+      loadedRef.current = true;
+      setSyncState("synced");
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // ─── Cloud: push on every change ────────────────────────────────────────
+  useEffect(() => {
+    if (!user || !loadedRef.current) return;
+    setSyncState("syncing");
+    if (pushTimer.current) clearTimeout(pushTimer.current);
+    pushTimer.current = setTimeout(async () => {
+      try {
+        await pushCloud(user.id, records, notes);
+        setSyncState("synced");
+      } catch {
+        setSyncState("error");
+      }
+    }, 600);
+    return () => { if (pushTimer.current) clearTimeout(pushTimer.current); };
+  }, [records, notes, user]);
+
 
   // ─── Toast helper ───────────────────────────────────────────────────────
   function showToast(msg: string) {
