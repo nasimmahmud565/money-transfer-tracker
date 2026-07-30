@@ -237,15 +237,16 @@ export default function Index() {
       if (cancelled) return;
       if (error) { setSyncState("error"); return; }
       setRecords((local) => {
-        const map = new Map(transfers.map((r) => [r.id, r]));
+        const map = new Map<string, Transfer>(transfers.map((r) => [r.id, r as Transfer]));
         local.forEach((r) => { if (!map.has(r.id)) map.set(r.id, r); });
         return Array.from(map.values());
       });
       setNotes((local) => {
-        const map = new Map(cloudNotes.map((n) => [n.id, n]));
+        const map = new Map<string, Note>(cloudNotes.map((n) => [n.id, n as Note]));
         local.forEach((n) => { if (!map.has(n.id)) map.set(n.id, n); });
         return Array.from(map.values());
       });
+
       loadedRef.current = true;
       setSyncState("synced");
     })();
