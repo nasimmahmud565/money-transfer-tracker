@@ -567,7 +567,50 @@ export default function Index() {
 
   const currencyObj = CURRENCIES.find((c) => c.code === form.currency) ?? CURRENCIES[0];
 
+  // ─── Auth gate ──────────────────────────────────────────────────────────
+  if (authLoading || !user) {
+    return (
+      <div style={{ ...s.root, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+        <div style={s.glow1} />
+        <div style={s.glow2} />
+        <div style={{ ...s.card, position: "relative", zIndex: 5, maxWidth: 420, width: "100%", textAlign: "center", padding: 28, marginBottom: 0 }}>
+          <div style={{ fontSize: 56, filter: `drop-shadow(0 6px 16px ${t.accent}88)` }}>💸</div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: t.text, margin: "10px 0 4px", letterSpacing: "-0.02em" }}>Money Transfer Tracker</h1>
+          <p style={{ color: t.muted, fontSize: 13, margin: "0 0 22px" }}>
+            {authLoading ? "Checking your session…" : "Sign in with Google to sync your records and notes across all your devices."}
+          </p>
+          {!authLoading && (
+            <>
+              <button
+                onClick={signIn}
+                disabled={signingIn}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%",
+                  padding: "13px 18px", borderRadius: 12, border: `1px solid ${t.surfaceBorder}`,
+                  background: "#ffffff", color: "#1f2937", fontWeight: 700, fontSize: 15,
+                  cursor: signingIn ? "wait" : "pointer", opacity: signingIn ? 0.7 : 1,
+                  boxShadow: `0 10px 24px ${t.accent}33`,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                  <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.4 5.4 2.5 13.2l7.8 6.1C12.2 13.3 17.6 9.5 24 9.5z" />
+                  <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.2-.4-4.7H24v9h12.7c-.6 3-2.3 5.6-4.9 7.3l7.6 5.9c4.4-4.1 7.1-10.2 7.1-17.5z" />
+                  <path fill="#FBBC05" d="M10.3 28.7a14.6 14.6 0 0 1 0-9.4l-7.8-6.1a24 24 0 0 0 0 21.6l7.8-6.1z" />
+                  <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.8 2.3-8.3 2.3-6.4 0-11.8-3.8-13.7-9.8l-7.8 6.1C6.4 42.6 14.6 48 24 48z" />
+                </svg>
+                {signingIn ? "Opening Google…" : "Continue with Google"}
+              </button>
+              {authError && <div style={{ ...s.formError, marginTop: 14, marginBottom: 0 }}>{authError}</div>}
+            </>
+          )}
+          <div style={{ marginTop: 22, fontSize: 11, color: t.muted }}>Your data stays private to your account.</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
+
     <div style={s.root}>
       <div style={s.glow1} />
       <div style={s.glow2} />
