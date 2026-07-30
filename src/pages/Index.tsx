@@ -638,9 +638,35 @@ export default function Index() {
                 />
               ))}
             </div>
+            <div
+              title={syncState === "error" ? "Cloud sync failed" : syncState === "syncing" ? "Syncing to cloud…" : "All changes synced"}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 999,
+                background: t.surface, border: `1px solid ${t.surfaceBorder}`, fontSize: 11, fontWeight: 700,
+                color: syncState === "error" ? "#f87171" : syncState === "syncing" ? t.accent : t.muted,
+              }}
+            >
+              <span style={{
+                width: 8, height: 8, borderRadius: "50%",
+                background: syncState === "error" ? "#f87171" : syncState === "syncing" ? t.accent : "#4ade80",
+              }} />
+              {syncState === "error" ? "Sync error" : syncState === "syncing" ? "Syncing" : "Synced"}
+            </div>
             <button style={s.addBtn} onClick={activeTab === "notes" ? openAddNote : openAdd}>
               <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> New
             </button>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              {user.avatar ? (
+                <img src={user.avatar} alt="" style={{ width: 28, height: 28, borderRadius: "50%", border: `1px solid ${t.surfaceBorder}` }} />
+              ) : (
+                <span style={{
+                  width: 28, height: 28, borderRadius: "50%", background: t.accentSoft, color: t.accent,
+                  display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12,
+                }}>{(user.name ?? user.email ?? "?").charAt(0).toUpperCase()}</span>
+              )}
+              <button style={s.iconBtn} onClick={signOut} title={user.email}>Sign out</button>
+            </div>
+
           </div>
         </div>
       </header>
