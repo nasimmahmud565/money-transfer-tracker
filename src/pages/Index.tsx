@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -604,6 +605,7 @@ export default function Index() {
             </>
           )}
           <div style={{ marginTop: 22, fontSize: 11, color: t.muted }}>Your data stays private to your account.</div>
+          <Link to="/" style={{ display: "inline-block", marginTop: 10, fontSize: 12, color: t.accent, textDecoration: "none", fontWeight: 700 }}>← Back to home</Link>
         </div>
       </div>
     );
