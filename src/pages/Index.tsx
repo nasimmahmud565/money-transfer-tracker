@@ -27,7 +27,7 @@ interface Note {
 }
 
 type ThemeName = "midnight" | "aurora" | "sunset" | "paper";
-type TabName = "dashboard" | "records" | "recipients" | "notes";
+type TabName = "dashboard" | "records" | "recipients" | "notes" | "admin";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "money_transfer_records_v2";
@@ -204,8 +204,42 @@ export default function Index() {
     setSigningIn(false);
   }
 
+  const [demoLoading, setDemoLoading] = useState<"" | "user" | "admin">("");
+  async function demoLogin(role: "user" | "admin") {
+    setDemoLoading(role);
+    setAuthError("");
+    const { data, error } = await supabase.functions.invoke("demo-login", { body: { role } });
+    if (error || !data?.access_token) {
+      setAuthError("Demo sign-in failed. Please try again.");
+      setDemoLoading("");
+      return;
+    }
+    await supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
+    if (role === "admin") setActiveTab("admin");
+    setDemoLoading("");
+  }
+
+  // ─── Admin ──────────────────────────────────────────────────────────────
+  type AdminRow = { user_id: string; label: string; is_demo: boolean; transfers: number; notes: number; total_sent: number; total_received: number; last_date: string | null };
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminRows, setAdminRows] = useState<AdminRow[]>([]);
+  async function loadAdmin() {
+    const { data } = await supabase.rpc("admin_overview");
+    setAdminRows((data as AdminRow[]) ?? []);
+  }
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+      const ok = (data ?? []).some((r) => r.role === "admin" || r.role === "demo_admin");
+      setIsAdmin(ok);
+      if (ok) loadAdmin();
+    });
+  }, [user?.id]);
+
   async function signOut() {
     loadedRef.current = false;
+    setIsAdmin(false);
+    setActiveTab("dashboard");
     await supabase.auth.signOut();
     setRecords([]);
     setNotes([]);
@@ -582,6 +616,17 @@ export default function Index() {
           </p>
           {!authLoading && (
             <>
+              <div style={{ display: "grid", gap: 10, marginBottom: 16 }}>
+                <button onClick={() => demoLogin("user")} disabled={!!demoLoading} style={{ ...s.addBtn, width: "100%", justifyContent: "center", padding: "14px 18px", fontSize: 15 }}>
+                  {demoLoading === "user" ? "Opening demo…" : "👤 Try Demo as User"}
+                </button>
+                <button onClick={() => demoLogin("admin")} disabled={!!demoLoading} style={{ ...s.iconBtn, width: "100%", padding: "14px 18px", fontSize: 15, fontWeight: 800, color: t.text }}>
+                  {demoLoading === "admin" ? "Opening admin demo…" : "🛡️ Try Demo as Admin"}
+                </button>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, color: t.muted, fontSize: 11, margin: "4px 0 14px" }}>
+                <span style={{ flex: 1, height: 1, background: t.surfaceBorder }} />or use your own account<span style={{ flex: 1, height: 1, background: t.surfaceBorder }} />
+              </div>
               <button
                 onClick={signIn}
                 disabled={signingIn}
@@ -679,6 +724,7 @@ export default function Index() {
           ["records", "📋 Records"],
           ["recipients", "👥 Recipients"],
           ["notes", "📝 Notes"],
+          ...(isAdmin ? [["admin", "🛡️ Admin"] as const] : []),
         ] as const).map(([tab, label]) => (
           <button
             key={tab}
@@ -930,6 +976,46 @@ export default function Index() {
               </div>
             )}
           </>
+        )}
+        {activeTab === "admin" && isAdmin && (
+          <div style={s.card}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 18, color: t.text }}>🛡️ Admin Overview</div>
+                <div style={{ fontSize: 12, color: t.muted }}>All accounts and their activity{adminRows.some((r) => !r.is_demo) ? "" : " (demo accounts only)"}</div>
+              </div>
+              <button style={s.iconBtn} onClick={loadAdmin}>↻ Refresh</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10, marginBottom: 16 }}>
+              <StatCard theme={t} label="Accounts" value={String(adminRows.length)} sub="total" accent={t.accent} />
+              <StatCard theme={t} label="Transfers" value={String(adminRows.reduce((a, r) => a + Number(r.transfers), 0))} sub="all users" accent={t.accent2} />
+              <StatCard theme={t} label="Notes" value={String(adminRows.reduce((a, r) => a + Number(r.notes), 0))} sub="all users" accent="#fb923c" />
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, color: t.text }}>
+                <thead>
+                  <tr style={{ textAlign: "left", color: t.muted }}>
+                    {["Account", "Transfers", "Notes", "Total Sent", "Total Received", "Last Transfer"].map((h) => (
+                      <th key={h} style={{ padding: "8px 10px", borderBottom: `1px solid ${t.surfaceBorder}` }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {adminRows.map((r) => (
+                    <tr key={r.user_id}>
+                      <td style={{ padding: "8px 10px", fontWeight: 700 }}>{r.label}{r.user_id === user.id ? " (you)" : ""}</td>
+                      <td style={{ padding: "8px 10px" }}>{r.transfers}</td>
+                      <td style={{ padding: "8px 10px" }}>{r.notes}</td>
+                      <td style={{ padding: "8px 10px" }}>{Number(r.total_sent).toLocaleString()}</td>
+                      <td style={{ padding: "8px 10px" }}>{Number(r.total_received).toLocaleString()}</td>
+                      <td style={{ padding: "8px 10px" }}>{r.last_date ?? "—"}</td>
+                    </tr>
+                  ))}
+                  {!adminRows.length && <tr><td colSpan={6} style={{ padding: 16, color: t.muted }}>No accounts yet.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
         {activeTab === "notes" && (
           <>
