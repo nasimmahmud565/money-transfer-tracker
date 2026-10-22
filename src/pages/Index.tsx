@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Link } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -204,20 +203,6 @@ export default function Index() {
     setSigningIn(false);
   }
 
-  const [demoLoading, setDemoLoading] = useState<"" | "user" | "admin">("");
-  async function demoLogin(role: "user" | "admin") {
-    setDemoLoading(role);
-    setAuthError("");
-    const { data, error } = await supabase.functions.invoke("demo-login", { body: { role } });
-    if (error || !data?.access_token) {
-      setAuthError("Demo sign-in failed. Please try again.");
-      setDemoLoading("");
-      return;
-    }
-    await supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
-    if (role === "admin") setActiveTab("admin");
-    setDemoLoading("");
-  }
 
   // ─── Admin ──────────────────────────────────────────────────────────────
   type AdminRow = { user_id: string; label: string; is_demo: boolean; transfers: number; notes: number; total_sent: number; total_received: number; last_date: string | null };
@@ -616,17 +601,6 @@ export default function Index() {
           </p>
           {!authLoading && (
             <>
-              <div style={{ display: "grid", gap: 10, marginBottom: 16 }}>
-                <button onClick={() => demoLogin("user")} disabled={!!demoLoading} style={{ ...s.addBtn, width: "100%", justifyContent: "center", padding: "14px 18px", fontSize: 15 }}>
-                  {demoLoading === "user" ? "Opening demo…" : "👤 Try Demo as User"}
-                </button>
-                <button onClick={() => demoLogin("admin")} disabled={!!demoLoading} style={{ ...s.iconBtn, width: "100%", padding: "14px 18px", fontSize: 15, fontWeight: 800, color: t.text }}>
-                  {demoLoading === "admin" ? "Opening admin demo…" : "🛡️ Try Demo as Admin"}
-                </button>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, color: t.muted, fontSize: 11, margin: "4px 0 14px" }}>
-                <span style={{ flex: 1, height: 1, background: t.surfaceBorder }} />or use your own account<span style={{ flex: 1, height: 1, background: t.surfaceBorder }} />
-              </div>
               <button
                 onClick={signIn}
                 disabled={signingIn}
@@ -650,7 +624,6 @@ export default function Index() {
             </>
           )}
           <div style={{ marginTop: 22, fontSize: 11, color: t.muted }}>Your data stays private to your account.</div>
-          <Link to="/" style={{ display: "inline-block", marginTop: 10, fontSize: 12, color: t.accent, textDecoration: "none", fontWeight: 700 }}>← Back to home</Link>
         </div>
       </div>
     );
